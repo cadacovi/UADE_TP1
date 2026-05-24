@@ -46,4 +46,17 @@ struct Ruta {
     int indiceActual;
 };
 
+struct ResultadoAvance {
+    bool exito;
+    bool timeout;
+    bool obstaculoDetectado;
+    float distanciaRecorridaMm;
+};
+
+struct ResultadoGiro {
+    bool exito;
+    bool timeout;
+    float errorFinalGrados;
+};
+
 #endif

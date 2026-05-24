@@ -17,6 +17,17 @@ static int limitarPWMControl(float pwm, int pwmMin, int pwmMax) {
 }
 
 bool avanzarDistanciaMm(float distanciaObjetivoMm) {
+    ResultadoAvance r = avanzarDistanciaResultado(distanciaObjetivoMm);
+    return r.exito;
+}
+
+ResultadoAvance avanzarDistanciaResultado(float distanciaObjetivoMm) {
+    ResultadoAvance resultado;
+    resultado.exito = false;
+    resultado.obstaculoDetectado = false;
+    resultado.timeout = false;
+    resultado.distanciaRecorridaMm = 0.0;
+
     Serial.println("[CONTROL] Avanzando distancia controlada");
 
     resetEncoders();
@@ -32,22 +43,18 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
         actualizarIMU();
 
         float distanciaActual = obtenerDistanciaPromedioMm();
+        resultado.distanciaRecorridaMm = distanciaActual;
 
         if (distanciaActual >= distanciaObjetivoMm - TOLERANCIA_DISTANCIA_MM) {
-        break;
+            resultado.exito = true;
+            break;
         }
 
         if (millis() - tiempoInicio > TIMEOUT_AVANCE_CELDA_MS) {
-        detenerMotores();
-        Serial.println("[CONTROL] Error: timeout avance");
-        return false;
+            resultado.timeout = true;
+            resultado.exito = false;
+            break;
         }
-
-        /* if (hayObstaculoFrontal()) {
-        detenerMotores();
-        Serial.println("[CONTROL] Obstaculo frontal detectado");
-        return false;
-        } */
 
         float restante = distanciaObjetivoMm - distanciaActual;
 
@@ -59,9 +66,9 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
             ultimaLecturaUS = millis();
 
             if (leerFrontalFiltradoRapidoMm() <= DIST_OBSTACULO_FRENTE_MM) {
-                detenerMotores();
-                Serial.println("[CONTROL] Obstaculo frontal detectado");
-                return false;
+                resultado.obstaculoDetectado = true;
+                resultado.exito = false;
+                break;
             }
         }
 
@@ -91,7 +98,9 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
     detenerMotores();
     // frenarSuaveDesde(PWM_BASE_AVANCE);
 
-    delay(200);
+    delay(100);
+
+    actualizarIMU();
 
     float errorFinalYaw = yawObjetivo - obtenerYawRelativo();
 
@@ -101,8 +110,19 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
         girarAngulo(-errorFinalYaw);
     } //correccion final usando IMU
 
-    Serial.println("[CONTROL] Avance completado");
-    return true;
+    resultado.distanciaRecorridaMm = obtenerDistanciaPromedioMm();
+
+    if (resultado.exito) {
+        Serial.println("[CONTROL] Avance completado");
+    } else if (resultado.obstaculoDetectado) {
+        Serial.println("[CONTROL] Avance detenido por obstaculo");
+    } else if (resultado.timeout) {
+        Serial.println("[CONTROL] Error: timeout avance");
+    } else {
+        Serial.println("[CONTROL] Avance fallido");
+    }
+
+    return resultado;
 }
 
 bool avanzarUnaCelda() {
@@ -110,6 +130,15 @@ bool avanzarUnaCelda() {
 }
 
 bool girarAngulo(float grados) {
+    ResultadoGiro r = girarAnguloResultado(grados);
+    return r.exito;
+}
+
+ResultadoGiro girarAnguloResultado(float grados){
+    ResultadoGiro resultado;
+    resultado.exito = false;
+    resultado.timeout = false;
+
     Serial.print("[CONTROL] Girando grados: ");
     Serial.println(grados);
 
@@ -126,14 +155,17 @@ bool girarAngulo(float grados) {
         float yawActual = abs(obtenerYawRelativo());
         float error = objetivo - yawActual;
 
+        resultado.errorFinalGrados = error;
+
         if (error <= TOLERANCIA_GIRO_GRADOS) {
-        break;
+            resultado.exito = true;
+            break;
         }
 
         if (millis() - tiempoInicio > TIMEOUT_GIRO_MS) {
-        detenerMotores();
-        Serial.println("[CONTROL] Error: timeout giro");
-        return false;
+            resultado.timeout = true;
+            resultado.exito = false;
+            break;
         }
 
         float pwm = KP_GIRO * error;
@@ -161,9 +193,24 @@ bool girarAngulo(float grados) {
     }
 
     detenerMotores();
+    delay(50);
 
-    Serial.println("[CONTROL] Giro completado");
-    return true;
+    actualizarIMU();
+
+    float yawFinal = abs(obtenerYawRelativo());
+    resultado.errorFinalGrados = objetivo - yawFinal;
+
+    if (resultado.exito) {
+        Serial.print("[CONTROL] Giro completado. Error final: ");
+        Serial.println(resultado.errorFinalGrados);
+    } else if (resultado.timeout) {
+        Serial.print("[CONTROL] Error: timeout giro. Error final: ");
+        Serial.println(resultado.errorFinalGrados);
+    } else {
+        Serial.println("[CONTROL] Giro fallido");
+    }
+    
+    return resultado;
 }
 
 bool girar90Derecha() {

@@ -174,7 +174,7 @@
     #define PWM_BASE_GIRO 190
 
     #define PWM_FINAL_AVANCE 120
-    #define PWM_FINAL_GIRO 100
+    #define PWM_FINAL_GIRO 120
 
     #define PWM_AVANCE_MIN 130
     #define PWM_AVANCE_MAX 255
@@ -191,7 +191,7 @@
     #define PWM_BASE_GIRO 150
 
     #define PWM_FINAL_AVANCE 100
-    #define PWM_FINAL_GIRO 80
+    #define PWM_FINAL_GIRO 100
 
     #define PWM_AVANCE_MIN 120
     #define PWM_AVANCE_MAX 220
@@ -235,7 +235,7 @@
 #define TIMEOUT_GIRO_MS 4000
 
 // Tolerancia angular para el avance
-#define TOLERANCIA_CORRECCION_YAW 2.0
+#define TOLERANCIA_CORRECCION_YAW 1.0
 #define MAX_CORRECCION_YAW 90.0
 
 // =====================================================
