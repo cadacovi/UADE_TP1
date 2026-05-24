@@ -12,6 +12,7 @@ void setMotores(int pwmIzquierdo, int pwmDerecho);
 
 void detenerMotores();
 void frenarSuave();
+void frenarSuaveDesde(int pwmInicial);
 
 void pruebaAvanzar();
 void pruebaRetroceder();

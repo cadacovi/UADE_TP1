@@ -14,6 +14,8 @@ float leerFrontalFiltradoMm();
 float leerIzquierdoFiltradoMm();
 float leerDerechoFiltradoMm();
 
+float leerFrontalFiltradoRapidoMm();
+
 bool hayObstaculoFrontal();
 bool hayObstaculoIzquierdo();
 bool hayObstaculoDerecho();

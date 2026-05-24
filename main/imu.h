@@ -2,7 +2,7 @@
 #define IMU_H
 
 #include <Arduino.h>
-#include <wire.h>
+#include <Wire.h>
 #include "config.h"
 
 bool inicializarIMU();

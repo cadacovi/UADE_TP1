@@ -24,6 +24,8 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
     float yawObjetivo = obtenerYawRelativo();
     unsigned long tiempoInicio = millis();
 
+    unsigned long ultimaLecturaUS = 0;
+
     while (true) {
         actualizarIMU();
 
@@ -39,10 +41,20 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
         return false;
         }
 
-        if (hayObstaculoFrontal()) {
+        /* if (hayObstaculoFrontal()) {
         detenerMotores();
         Serial.println("[CONTROL] Obstaculo frontal detectado");
         return false;
+        } */
+
+        if (millis() - ultimaLecturaUS >= 80) {
+            ultimaLecturaUS = millis();
+
+            if (leerFrontalFiltradoRapidoMm() <= DIST_OBSTACULO_FRENTE_MM) {
+                detenerMotores();
+                Serial.println("[CONTROL] Obstaculo frontal detectado");
+                return false;
+            }
         }
 
         float errorRuedas = obtenerErrorRuedasMm();
@@ -65,10 +77,11 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
 
         setMotores(pwmIzquierdo, pwmDerecho);
 
-        delay(10);
+        // delay(10);
     }
 
-    frenarSuave();
+    detenerMotores();
+    // frenarSuaveDesde(PWM_BASE_AVANCE);
 
     Serial.println("[CONTROL] Avance completado");
     return true;

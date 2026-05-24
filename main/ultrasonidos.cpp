@@ -67,6 +67,20 @@ static float medirDistanciaFiltradaMm(int trigPin, int echoPin) {
     return muestras[ULTRASONICO_MUESTRAS / 2];
 }
 
+static float medirDistanciaFiltradaRapidaMm(int trigPin, int echoPin) {
+    const int muestrasRapidas = 3;
+    float muestras[muestrasRapidas];
+
+    for (int i = 0; i < muestrasRapidas; i++) {
+        muestras[i] = medirDistanciaMm(trigPin, echoPin);
+        delay(4);
+    }
+
+    ordenar(muestras, muestrasRapidas);
+
+    return muestras[muestrasRapidas / 2]; // mediana de 3
+}
+
 float leerFrontalMm() {
     return medirDistanciaMm(TRIG_FRONT, ECHO_FRONT);
 }
@@ -81,6 +95,10 @@ float leerDerechoMm() {
 
 float leerFrontalFiltradoMm() {
     return medirDistanciaFiltradaMm(TRIG_FRONT, ECHO_FRONT);
+}
+
+float leerFrontalFiltradoRapidoMm() {
+    return medirDistanciaFiltradaRapidaMm(TRIG_FRONT, ECHO_FRONT);
 }
 
 float leerIzquierdoFiltradoMm() {

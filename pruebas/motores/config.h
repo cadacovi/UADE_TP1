@@ -137,6 +137,7 @@
 // PWM Y CONTROL DE MOTORES
 // =====================================================
 
+/* 
 // PWM mínimo útil.
 // Debe ser suficiente para vencer la fricción.
 #define PWM_MIN 80
@@ -155,7 +156,44 @@
 
 // Límites específicos para giro
 #define PWM_GIRO_MIN 85
-#define PWM_GIRO_MAX 180
+#define PWM_GIRO_MAX 180 
+*/
+
+// =====================================================
+// PERFIL DE BATERIA / PWM
+// =====================================================
+
+#define PERFIL_BATERIA_BAJA true
+
+#if PERFIL_BATERIA_BAJA
+
+    #define PWM_MIN 150
+    #define PWM_MAX 255
+
+    #define PWM_BASE_AVANCE 200
+    #define PWM_BASE_GIRO 190
+
+    #define PWM_AVANCE_MIN 130
+    #define PWM_AVANCE_MAX 255
+
+    #define PWM_GIRO_MIN 130
+    #define PWM_GIRO_MAX 255
+
+    #else
+
+    #define PWM_MIN 120
+    #define PWM_MAX 255
+
+    #define PWM_BASE_AVANCE 160
+    #define PWM_BASE_GIRO 150
+
+    #define PWM_AVANCE_MIN 120
+    #define PWM_AVANCE_MAX 220
+
+    #define PWM_GIRO_MIN 120
+    #define PWM_GIRO_MAX 220
+
+#endif
 
 // =====================================================
 // CONTROL DE AVANCE

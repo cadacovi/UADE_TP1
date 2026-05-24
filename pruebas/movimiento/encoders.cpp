@@ -3,17 +3,36 @@
 volatile long pulsosIzquierdo = 0;
 volatile long pulsosDerecho = 0;
 
+volatile unsigned long ultimoPulsoIzqUs = 0;
+volatile unsigned long ultimoPulsoDerUs = 0;
+
+const unsigned long FILTRO_ENCODER_US = 2000; // probar 1000, 2000, 3000
+
 portMUX_TYPE muxEncoders = portMUX_INITIALIZER_UNLOCKED;
 
 void IRAM_ATTR encoderIzquierdoISR() {
+    unsigned long ahora = micros();
+
+    if (ahora - ultimoPulsoIzqUs < FILTRO_ENCODER_US) {
+        return;
+    }
+
     portENTER_CRITICAL_ISR(&muxEncoders);
     pulsosIzquierdo++;
+    ultimoPulsoIzqUs = ahora;
     portEXIT_CRITICAL_ISR(&muxEncoders);
 }
 
 void IRAM_ATTR encoderDerechoISR() {
+    unsigned long ahora = micros();
+
+    if (ahora - ultimoPulsoDerUs < FILTRO_ENCODER_US) {
+        return;
+    }
+
     portENTER_CRITICAL_ISR(&muxEncoders);
     pulsosDerecho++;
+    ultimoPulsoDerUs = ahora;
     portEXIT_CRITICAL_ISR(&muxEncoders);
 }
 
@@ -23,8 +42,8 @@ void inicializarEncoders() {
 
     resetEncoders();
 
-    attachInterrupt(digitalPinToInterrupt(ENCODER_LEFT), encoderIzquierdoISR, RISING);
-    attachInterrupt(digitalPinToInterrupt(ENCODER_RIGHT), encoderDerechoISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(ENCODER_LEFT), encoderIzquierdoISR, FALLING);
+    attachInterrupt(digitalPinToInterrupt(ENCODER_RIGHT), encoderDerechoISR, FALLING);
 
     Serial.println("[ENCODERS] Inicializados");
 }
@@ -33,6 +52,8 @@ void resetEncoders() {
     portENTER_CRITICAL(&muxEncoders);
     pulsosIzquierdo = 0;
     pulsosDerecho = 0;
+    ultimoPulsoIzqUs = 0;
+    ultimoPulsoDerUs = 0;
     portEXIT_CRITICAL(&muxEncoders);
 }
 

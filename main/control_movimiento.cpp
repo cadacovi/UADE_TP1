@@ -24,6 +24,10 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
     float yawObjetivo = obtenerYawRelativo();
     unsigned long tiempoInicio = millis();
 
+    unsigned long ultimaLecturaUS = 0;
+
+    int pwmBase = PWM_BASE_AVANCE;
+
     while (true) {
         actualizarIMU();
 
@@ -39,10 +43,26 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
         return false;
         }
 
-        if (hayObstaculoFrontal()) {
+        /* if (hayObstaculoFrontal()) {
         detenerMotores();
         Serial.println("[CONTROL] Obstaculo frontal detectado");
         return false;
+        } */
+
+        float restante = distanciaObjetivoMm - distanciaActual;
+
+        if (restante < DISTANCIA_FRENADO_MM) {
+            pwmBase = PWM_AVANCE_FINAL;
+        }
+
+        if (millis() - ultimaLecturaUS >= 80) {
+            ultimaLecturaUS = millis();
+
+            if (leerFrontalFiltradoRapidoMm() <= DIST_OBSTACULO_FRENTE_MM) {
+                detenerMotores();
+                Serial.println("[CONTROL] Obstaculo frontal detectado");
+                return false;
+            }
         }
 
         float errorRuedas = obtenerErrorRuedasMm();
@@ -52,29 +72,40 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
                         (KP_YAW_AVANCE * errorYaw);
 
         int pwmIzquierdo = limitarPWMControl(
-        PWM_BASE_AVANCE - correccion,
+        pwmBase - correccion,
         PWM_AVANCE_MIN,
         PWM_AVANCE_MAX
         );
 
         int pwmDerecho = limitarPWMControl(
-        PWM_BASE_AVANCE + correccion,
+        pwmBase + correccion,
         PWM_AVANCE_MIN,
         PWM_AVANCE_MAX
         );
 
         setMotores(pwmIzquierdo, pwmDerecho);
 
-        delay(10);
+        // delay(10);
     }
 
-    frenarSuave();
+    detenerMotores();
+    // frenarSuaveDesde(PWM_BASE_AVANCE);
+
+    delay(200);
+
+    float errorFinalYaw = yawObjetivo - obtenerYawRelativo();
+
+
+    if (abs(errorFinalYaw) > TOLERANCIA_CORRECCION_YAW &&
+        abs(errorFinalYaw) < MAX_CORRECCION_YAW) {
+        girarAngulo(-errorFinalYaw);
+    } //correccion final usando IMU
 
     Serial.println("[CONTROL] Avance completado");
     return true;
-    }
+}
 
-    bool avanzarUnaCelda() {
+bool avanzarUnaCelda() {
     return avanzarDistanciaMm(TAM_CELDA_MM);
 }
 
@@ -107,6 +138,10 @@ bool girarAngulo(float grados) {
 
         float pwm = KP_GIRO * error;
         int pwmGiro = limitarPWMControl(pwm, PWM_GIRO_MIN, PWM_GIRO_MAX);
+
+        if (error < 20) {
+            pwmGiro = PWM_GIRO_MIN;
+        }
 
         if (sentido > 0) {
         // Giro derecha

@@ -124,11 +124,11 @@
 #define PI_ROBOT 3.14159265
 
 // Perímetro de la rueda
-#define PERIMETRO_RUEDA_MM (PI_ROBOT * DIAMETRO_RUEDA_MM)
+// #define PERIMETRO_RUEDA_MM (PI_ROBOT * DIAMETRO_RUEDA_MM)
 
 // Conversión aproximada de pulsos a distancia.
 // Puede recalibrarse luego.
-#define PULSOS_POR_MM (PULSOS_POR_VUELTA / PERIMETRO_RUEDA_MM)
+#define PULSOS_POR_MM 0.187   // Calibrado 22/05/26
 
 // Pulsos necesarios para avanzar una celda
 #define PULSOS_POR_CELDA (TAM_CELDA_MM * PULSOS_POR_MM)
@@ -137,6 +137,7 @@
 // PWM Y CONTROL DE MOTORES
 // =====================================================
 
+/* 
 // PWM mínimo útil.
 // Debe ser suficiente para vencer la fricción.
 #define PWM_MIN 80
@@ -155,17 +156,54 @@
 
 // Límites específicos para giro
 #define PWM_GIRO_MIN 85
-#define PWM_GIRO_MAX 180
+#define PWM_GIRO_MAX 180 
+*/
+
+// =====================================================
+// PERFIL DE BATERIA / PWM
+// =====================================================
+
+#define PERFIL_BATERIA_BAJA false
+
+#if PERFIL_BATERIA_BAJA
+
+    #define PWM_MIN 160
+    #define PWM_MAX 255
+
+    #define PWM_BASE_AVANCE 200
+    #define PWM_BASE_GIRO 190
+
+    #define PWM_AVANCE_MIN 130
+    #define PWM_AVANCE_MAX 255
+
+    #define PWM_GIRO_MIN 160
+    #define PWM_GIRO_MAX 255
+
+    #else
+
+    #define PWM_MIN 120
+    #define PWM_MAX 255
+
+    #define PWM_BASE_AVANCE 160
+    #define PWM_BASE_GIRO 150
+
+    #define PWM_AVANCE_MIN 120
+    #define PWM_AVANCE_MAX 220
+
+    #define PWM_GIRO_MIN 120
+    #define PWM_GIRO_MAX 220
+
+#endif
 
 // =====================================================
 // CONTROL DE AVANCE
 // =====================================================
 
 // Tolerancia aceptada al avanzar una distancia
-#define TOLERANCIA_DISTANCIA_MM 8.0
+#define TOLERANCIA_DISTANCIA_MM 20.0
 
 // Ganancia para corregir diferencia entre ruedas
-#define KP_ENCODER_AVANCE 0.8
+#define KP_ENCODER_AVANCE 1.5
 
 // Ganancia para corregir desviación angular usando IMU
 #define KP_YAW_AVANCE 1.5
@@ -213,6 +251,17 @@
 #define SERVO_MIN_US 500
 #define SERVO_MAX_US 2400
 #define SERVO_FRECUENCIA_HZ 50
+
+// =====================================================
+// WIFI / ACCESS POINT
+// =====================================================
+
+#define WIFI_AP_SSID "RobotESP32"
+#define WIFI_AP_PASSWORD "12345678"
+
+#define WIFI_AP_CANAL 1
+#define WIFI_AP_OCULTO false
+#define WIFI_AP_MAX_CLIENTES 2
 
 // =====================================================
 // DEPURACION

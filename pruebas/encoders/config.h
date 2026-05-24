@@ -114,7 +114,7 @@
 
 // Pulsos por vuelta del encoder.
 // Este valor se debe medir realmente.
-#define PULSOS_POR_VUELTA 20.0
+// #define PULSOS_POR_VUELTA 20.0
 
 // Distancia entre las ruedas izquierda y derecha.
 // Sirve para estimar giros y control diferencial.
@@ -124,11 +124,11 @@
 #define PI_ROBOT 3.14159265
 
 // Perímetro de la rueda
-#define PERIMETRO_RUEDA_MM (PI_ROBOT * DIAMETRO_RUEDA_MM)
+// #define PERIMETRO_RUEDA_MM (PI_ROBOT * DIAMETRO_RUEDA_MM)
 
 // Conversión aproximada de pulsos a distancia.
 // Puede recalibrarse luego.
-#define PULSOS_POR_MM (PULSOS_POR_VUELTA / PERIMETRO_RUEDA_MM)
+#define PULSOS_POR_MM 0.185   // Calibrado 22/05/26
 
 // Pulsos necesarios para avanzar una celda
 #define PULSOS_POR_CELDA (TAM_CELDA_MM * PULSOS_POR_MM)

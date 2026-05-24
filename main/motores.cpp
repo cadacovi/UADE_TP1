@@ -67,9 +67,22 @@ void detenerMotores() {
 }
 
 void frenarSuave() {
-    for (int pwm = PWM_BASE_AVANCE; pwm >= 0; pwm -= 10) {
+    setMotores(120, 120);
+    delay(25);
+
+    setMotores(80, 80);
+    delay(25);
+
+    setMotores(40, 40);
+    delay(20);
+
+    detenerMotores();
+}
+
+void frenarSuaveDesde(int pwmInicial) {
+    for (int pwm = pwmInicial; pwm >= 0; pwm -= 40) {
         setMotores(pwm, pwm);
-        delay(20);
+        delay(10);
     }
 
     detenerMotores();
