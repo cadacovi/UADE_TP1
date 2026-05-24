@@ -228,6 +228,9 @@
 // Tolerancia angular aceptable
 #define TOLERANCIA_GIRO_GRADOS 1.0
 
+// Tolerancia angular para corrección fina después de un giro
+#define TOLERANCIA_GIRO_FINO_GRADOS 1.0
+
 // Ganancia proporcional para giro
 #define KP_GIRO 2.0
 

@@ -376,38 +376,54 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
     while (direccionActual != direccionObjetivo) {
         int diferencia = (direccionObjetivo - direccionActual + 4) % 4;
 
-        bool giroOk = false;
+        ResultadoGiro resultadoGiro;
+        resultadoGiro.exito = false;
+        resultadoGiro.timeout = false;
+        resultadoGiro.errorFinalGrados = 0.0;
 
         if (diferencia == 1) {
-        giroOk = girar90Derecha();
+            resultadoGiro = girarAnguloResultado(90.0);
 
-        if (giroOk) {
-            actualizarDireccionDerecha();
-        }
+            if (resultadoGiro.exito) {
+                actualizarDireccionDerecha();
+            }
         }
 
         else if (diferencia == 3) {
-        giroOk = girar90Izquierda();
+            resultadoGiro = girarAnguloResultado(-90.0);
 
-        if (giroOk) {
-            actualizarDireccionIzquierda();
-        }
+            if (resultadoGiro.exito) {
+                actualizarDireccionIzquierda();
+            }
         }
 
         else if (diferencia == 2) {
-        giroOk = girar180();
+            resultadoGiro = girarAnguloResultado(180.0);
 
-        if (giroOk) {
-            actualizarDireccion180();
-        }
-        }
-
-        if (!giroOk) {
-        reportar("Error al orientar robot");
-        return false;
+            if (resultadoGiro.exito) {
+                actualizarDireccion180();
+            }
         }
 
-        delay(100);
+        if (!resultadoGiro.exito) {
+            reportar("Error al orientar robot");
+            return false;
+        }
+
+        // Correccion fina del giro
+        if (abs(resultadoGiro.errorFinalGrados) > TOLERANCIA_GIRO_FINO_GRADOS) {
+            Serial.print("[NAV] Correccion fina giro: ");
+            Serial.println(resultadoGiro.errorFinalGrados);
+
+            ResultadoGiro correccion = girarAnguloResultado(-resultadoGiro.errorFinalGrados);
+
+            if (!correccion.exito) {
+                reportar("Advertencia: correccion fina de giro fallida");
+                // No retorno false para no matar la mision por una correccion chica
+            }
+        }
+
+        delay(30);
     }
 
     return true;
