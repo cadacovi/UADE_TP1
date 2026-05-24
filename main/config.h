@@ -173,11 +173,11 @@
     #define PWM_BASE_AVANCE 200
     #define PWM_BASE_GIRO 190
 
+    #define PWM_FINAL_AVANCE 120
+    #define PWM_FINAL_GIRO 100
+
     #define PWM_AVANCE_MIN 130
     #define PWM_AVANCE_MAX 255
-
-    #define DISTANCIA_FRENADO_MM 70.0
-    #define PWM_AVANCE_FINAL 160
 
     #define PWM_GIRO_MIN 140
     #define PWM_GIRO_MAX 255
@@ -190,11 +190,11 @@
     #define PWM_BASE_AVANCE 160
     #define PWM_BASE_GIRO 150
 
+    #define PWM_FINAL_AVANCE 100
+    #define PWM_FINAL_GIRO 80
+
     #define PWM_AVANCE_MIN 120
     #define PWM_AVANCE_MAX 220
-
-    #define DISTANCIA_FRENADO_MM 70.0
-    #define PWM_AVANCE_FINAL 120
 
     #define PWM_GIRO_MIN 120
     #define PWM_GIRO_MAX 220
@@ -207,6 +207,9 @@
 
 // Tolerancia aceptada al avanzar una distancia
 #define TOLERANCIA_DISTANCIA_MM 20.0
+
+// Distancia hacia el objetivo de avance para bajar pwm
+#define DISTANCIA_FRENADO_MM 70.0
 
 // Ganancia para corregir diferencia entre ruedas
 #define KP_ENCODER_AVANCE 1.5

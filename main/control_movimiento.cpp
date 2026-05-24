@@ -52,7 +52,7 @@ bool avanzarDistanciaMm(float distanciaObjetivoMm) {
         float restante = distanciaObjetivoMm - distanciaActual;
 
         if (restante < DISTANCIA_FRENADO_MM) {
-            pwmBase = PWM_AVANCE_FINAL;
+            pwmBase = PWM_FINAL_AVANCE;
         }
 
         if (millis() - ultimaLecturaUS >= 80) {
@@ -139,9 +139,15 @@ bool girarAngulo(float grados) {
         float pwm = KP_GIRO * error;
         int pwmGiro = limitarPWMControl(pwm, PWM_GIRO_MIN, PWM_GIRO_MAX);
 
-        if (error < 20) {
+        if (objetivo > 45 && error < 30) {
+            pwmGiro = PWM_FINAL_GIRO;
+        }
+        // Suavizar final de giro para mejor precision
+
+        if (objetivo < 20) {
             pwmGiro = PWM_GIRO_MIN;
         }
+        // Para giros pequeños, usar potencia minima para evitar overshoot
 
         if (sentido > 0) {
         // Giro derecha
