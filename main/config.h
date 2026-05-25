@@ -221,6 +221,9 @@
 // Evita que el robot quede intentando avanzar para siempre.
 #define TIMEOUT_AVANCE_CELDA_MS 4000
 
+// Maximo numero de celdas a avanzar de manera continua
+#define MAX_CELDAS_TRAMO_RECTO 3
+
 // =====================================================
 // CONTROL DE GIRO
 // =====================================================

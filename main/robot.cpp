@@ -483,6 +483,169 @@ bool Robot::avanzarASiguienteCelda(Celda siguiente) {
     }
 }
 
+// auxiliar
+Direccion Robot::direccionEntreCeldas(Celda desde, Celda hacia) {
+    if (hacia.x > desde.x) return ESTE;
+    if (hacia.x < desde.x) return OESTE;
+    if (hacia.y > desde.y) return NORTE;
+    return SUR;
+}
+
+int Robot::contarCeldasRectasConsecutivas(Direccion direccionTramo) {
+    int cantidad = 0;
+    Celda desde = posicionActual;
+
+    for (int i = rutaActual.indiceActual; i < rutaActual.longitud; i++) {
+        Celda celda = rutaActual.celdas[i];
+
+        Direccion dir = direccionEntreCeldas(desde, celda);
+
+        if (dir != direccionTramo) {
+            break;
+        }
+
+        if (!mapaLocal.celdaTransitable(celda)) {
+            break;
+        }
+
+        cantidad++;
+        desde = celda;
+
+        if (cantidad >= MAX_CELDAS_TRAMO_RECTO) {
+            break;
+        }
+    }
+
+    return cantidad;
+}
+
+void Robot::avanzarPosicionLogica(Direccion direccion, int cantidadCeldas) {
+    for (int i = 0; i < cantidadCeldas; i++) {
+        switch (direccion) {
+            case NORTE:
+                posicionActual.y += 1;
+                break;
+
+            case ESTE:
+                posicionActual.x += 1;
+                break;
+
+            case SUR:
+                posicionActual.y -= 1;
+                break;
+
+            case OESTE:
+                posicionActual.x -= 1;
+                break;
+        }
+
+        mapaLocal.marcarCelda(posicionActual, VISITADA);
+    }
+}
+
+bool Robot::avanzarDerecho(Celda primeraCelda) {
+    Direccion direccionNecesaria = direccionHaciaCelda(primeraCelda);
+
+    bool orientacionOk = orientarHacia(direccionNecesaria);
+
+    if (!orientacionOk) {
+        cambiarEstado(ESTADO_ERROR);
+        return false;
+    }
+
+    actualizarMapaLocalConSensores();
+
+    if (!mapaLocal.celdaTransitable(primeraCelda)) {
+        reportar("Primera celda del tramo no transitable");
+        cambiarEstado(PLANIFICANDO_RUTA);
+        return false;
+    }
+
+    int cantidadCeldas = contarCeldasRectasConsecutivas(direccionNecesaria);
+
+    if (cantidadCeldas <= 0) {
+        reportar("No hay celdas validas en tramo recto");
+        cambiarEstado(PLANIFICANDO_RUTA);
+        return false;
+    }
+
+    Serial.print("[NAV] Avanzando tramo recto de ");
+    Serial.print(cantidadCeldas);
+    Serial.println(" celda(s)");
+
+    float distanciaObjetivoMm = cantidadCeldas * TAM_CELDA_MM;
+
+    ResultadoAvance resultado = avanzarDistanciaResultado(distanciaObjetivoMm);
+
+    if (resultado.exito) {
+        avanzarPosicionLogica(direccionNecesaria, cantidadCeldas);
+        rutaActual.indiceActual += cantidadCeldas;
+
+        Serial.print("[NAV] Nueva posicion: x=");
+        Serial.print(posicionActual.x);
+        Serial.print(" y=");
+        Serial.println(posicionActual.y);
+
+        actualizarMapaLocalConSensores();
+
+        return true;
+    }
+
+    else if (resultado.obstaculoDetectado) {
+        reportar("Avance de tramo fallido. Obstaculo frontal");
+
+        float distanciaRecorrida = resultado.distanciaRecorridaMm;
+
+        int celdasCompletas = (int)(distanciaRecorrida / TAM_CELDA_MM);
+
+        if (celdasCompletas > cantidadCeldas) {
+            celdasCompletas = cantidadCeldas;
+        }
+
+        if (celdasCompletas < 0) {
+            celdasCompletas = 0;
+        }
+
+        float distanciaHastaCentroSeguro = celdasCompletas * TAM_CELDA_MM;
+        float retrocesoMm = distanciaRecorrida - distanciaHastaCentroSeguro;
+
+        if (retrocesoMm > 20.0) {
+            Serial.print("[NAV] Retrocediendo al centro de celda segura: ");
+            Serial.println(retrocesoMm);
+
+            ResultadoAvance resultadoRetroceso = avanzarDistanciaResultado(
+                -(retrocesoMm + TOLERANCIA_DISTANCIA_MM)
+            );
+
+            if (!resultadoRetroceso.exito) {
+                reportar("Advertencia: retroceso de correccion fallido");
+            }
+        }
+
+        if (celdasCompletas > 0) {
+            avanzarPosicionLogica(direccionNecesaria, celdasCompletas);
+            rutaActual.indiceActual += celdasCompletas;
+        }
+
+        Celda frontal = obtenerCeldaFrontal();
+        mapaLocal.marcarCelda(frontal, OCUPADA);
+
+        Serial.print("[NAV] Posicion corregida: x=");
+        Serial.print(posicionActual.x);
+        Serial.print(" y=");
+        Serial.println(posicionActual.y);
+
+        cambiarEstado(EVITANDO_OBSTACULO);
+        return false;
+    }
+
+    else {
+        reportar("Avance de tramo fallido. Timeout u otro error");
+        cambiarEstado(ESTADO_ERROR);
+        return false;
+    }
+}
+
 // =====================================================
 // MANEJADORES DE ESTADO
 // =====================================================
@@ -544,13 +707,11 @@ void Robot::manejarNavegando() {
     Serial.print(" y=");
     Serial.println(siguiente.y);
 
-    bool avanceOk = avanzarASiguienteCelda(siguiente);
+    bool avanceOk = avanzarDerecho(siguiente);
 
     if (!avanceOk) {
         return;
     }
-
-    rutaActual.indiceActual++;
 
     if (posicionActual.x == destino.x && posicionActual.y == destino.y) {
         reportar("Destino alcanzado");

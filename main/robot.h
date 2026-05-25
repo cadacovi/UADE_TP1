@@ -41,6 +41,10 @@ class Robot {
         void actualizarDireccion180();
 
         bool avanzarASiguienteCelda(Celda siguiente);
+        Direccion direccionEntreCeldas(Celda desde, Celda hacia);
+        int contarCeldasRectasConsecutivas(Direccion direccionTramo);
+        void avanzarPosicionLogica(Direccion direccion, int cantidadCeldas);
+        bool avanzarDerecho(Celda primeraCelda);
 
         Celda obtenerCeldaFrontal();
         Celda obtenerCeldaIzquierda();
