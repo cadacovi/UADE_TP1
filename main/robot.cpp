@@ -447,7 +447,9 @@ bool Robot::avanzarASiguienteCelda(Celda siguiente) {
         return false;
     }
 
-    bool avanceOk = avanzarUnaCelda();
+    ResultadoAvance resultadoAvance = avanzarDistanciaResultado(TAM_CELDA_MM);
+
+    bool avanceOk = resultadoAvance.exito;
 
     if (avanceOk) {
         posicionActual = siguiente;
@@ -461,13 +463,22 @@ bool Robot::avanzarASiguienteCelda(Celda siguiente) {
         return true;
     }
 
-    else {
-        reportar("Avance fallido. Posible obstaculo frontal");
+    else if (resultadoAvance.obstaculoDetectado) {
+        reportar("Avance fallido. Obstaculo frontal");
 
         Celda frontal = obtenerCeldaFrontal();
         mapaLocal.marcarCelda(frontal, OCUPADA);
 
+        float retrocesoMm = resultadoAvance.distanciaRecorridaMm + TOLERANCIA_DISTANCIA_MM*0.5;
+        ResultadoAvance resultadoRetroceso = avanzarDistanciaResultado(-retrocesoMm);
+
         cambiarEstado(EVITANDO_OBSTACULO);
+        return false;
+    }
+
+    else {
+        reportar("Avance fallido. Timeout");
+        cambiarEstado(ESTADO_ERROR);
         return false;
     }
 }

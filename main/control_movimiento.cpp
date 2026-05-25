@@ -28,8 +28,6 @@ ResultadoAvance avanzarDistanciaResultado(float distanciaObjetivoMm) {
     resultado.timeout = false;
     resultado.distanciaRecorridaMm = 0.0;
 
-    Serial.println("[CONTROL] Avanzando distancia controlada");
-
     resetEncoders();
 
     float yawObjetivo = obtenerYawRelativo();
@@ -39,13 +37,20 @@ ResultadoAvance avanzarDistanciaResultado(float distanciaObjetivoMm) {
 
     int pwmBase = PWM_BASE_AVANCE;
 
+    bool reversa = distanciaObjetivoMm < 0;
+
+    Serial.println(reversa ? "[CONTROL] Retrocediendo distancia controlada"
+                       : "[CONTROL] Avanzando distancia controlada");
+
+    float distanciaObjetivo = abs(distanciaObjetivoMm);
+
     while (true) {
         actualizarIMU();
 
         float distanciaActual = obtenerDistanciaPromedioMm();
         resultado.distanciaRecorridaMm = distanciaActual;
 
-        if (distanciaActual >= distanciaObjetivoMm - TOLERANCIA_DISTANCIA_MM) {
+        if (distanciaActual >= distanciaObjetivo - TOLERANCIA_DISTANCIA_MM) {
             resultado.exito = true;
             break;
         }
@@ -56,13 +61,13 @@ ResultadoAvance avanzarDistanciaResultado(float distanciaObjetivoMm) {
             break;
         }
 
-        float restante = distanciaObjetivoMm - distanciaActual;
+        float restante = distanciaObjetivo - distanciaActual;
 
         if (restante < DISTANCIA_FRENADO_MM) {
             pwmBase = PWM_FINAL_AVANCE;
         }
 
-        if (millis() - ultimaLecturaUS >= 80) {
+        if (millis() - ultimaLecturaUS >= 80 && !reversa) {
             ultimaLecturaUS = millis();
 
             if (leerFrontalFiltradoRapidoMm() <= DIST_OBSTACULO_FRENTE_MM) {
@@ -89,6 +94,11 @@ ResultadoAvance avanzarDistanciaResultado(float distanciaObjetivoMm) {
         PWM_AVANCE_MIN,
         PWM_AVANCE_MAX
         );
+
+        if (reversa) {
+            pwmIzquierdo = -pwmIzquierdo;
+            pwmDerecho = -pwmDerecho;
+        }
 
         setMotores(pwmIzquierdo, pwmDerecho);
 
