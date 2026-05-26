@@ -9,6 +9,8 @@
 #include "encoders.h"
 #include "imu.h"
 #include "ultrasonidos.h"
+#include "motores.h"
+#include "servo_carga.h"
 
 static WebServer servidor(80);
 static Robot* robotWiFi = nullptr;
@@ -187,7 +189,12 @@ static String ejecutarComandoWiFi(String comando) {
     }
 
     else if (comando == "S") {
-        robotWiFi->detener();
+        detenerMotores();
+
+        if (robotWiFi != nullptr) {
+            robotWiFi->detener();
+        }
+
         return "Robot detenido";
     }
 
@@ -247,6 +254,72 @@ static String ejecutarComandoWiFi(String comando) {
         return r;
     }
 
+    // ---------- Control manual ----------
+
+    else if (comando == "MAN_AV") {
+        ResultadoAvance r = avanzarDistanciaResultado(WIFI_MANUAL_AVANCE_MM);
+
+        if (r.exito) {
+            return "Manual: avance completado";
+        }
+
+        if (r.obstaculoDetectado) {
+            return "Manual: avance detenido por obstaculo";
+        }
+
+        return "Manual: avance fallido";
+    }
+
+    else if (comando == "MAN_RET") {
+        ResultadoAvance r = avanzarDistanciaResultado(-WIFI_MANUAL_AVANCE_MM);
+
+        if (r.exito) {
+            return "Manual: retroceso completado";
+        }
+
+        return "Manual: retroceso fallido";
+    }
+
+    else if (comando == "MAN_DER") {
+        ResultadoGiro r = girarAnguloResultado(WIFI_MANUAL_GIRO_GRADOS);
+
+        if (r.exito) {
+            return "Manual: giro derecha completado";
+        }
+
+        return "Manual: giro derecha fallido";
+    }
+
+    else if (comando == "MAN_IZQ") {
+        ResultadoGiro r = girarAnguloResultado(-WIFI_MANUAL_GIRO_GRADOS);
+
+        if (r.exito) {
+            return "Manual: giro izquierda completado";
+        }
+
+        return "Manual: giro izquierda fallido";
+    }
+
+    else if (comando == "MAN_DER45") {
+        ResultadoGiro r = girarAnguloResultado(WIFI_MANUAL_GIRO_MEDIO_GRADOS);
+        return r.exito ? "Manual: giro derecha 45 completado" : "Manual: giro derecha 45 fallido";
+    }
+
+    else if (comando == "MAN_IZQ45") {
+        ResultadoGiro r = girarAnguloResultado(-WIFI_MANUAL_GIRO_MEDIO_GRADOS);
+        return r.exito ? "Manual: giro izquierda 45 completado" : "Manual: giro izquierda 45 fallido";
+    }
+
+    else if (comando == "MAN_DER10") {
+        ResultadoGiro r = girarAnguloResultado(WIFI_MANUAL_GIRO_FINO_GRADOS);
+        return r.exito ? "Manual: giro derecha 10 completado" : "Manual: giro derecha 10 fallido";
+    }
+
+    else if (comando == "MAN_IZQ10") {
+        ResultadoGiro r = girarAnguloResultado(-WIFI_MANUAL_GIRO_FINO_GRADOS);
+        return r.exito ? "Manual: giro izquierda 10 completado" : "Manual: giro izquierda 10 fallido";
+    }
+
     return "Comando no reconocido: " + comando;
 }
 
@@ -256,61 +329,118 @@ static String paginaHTML() {
     html += "<!DOCTYPE html><html><head>";
     html += "<meta charset='UTF-8'>";
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
-    html += "<title>Robot ESP32</title>";
+    html += "<title>Robot ESP32-S3</title>";
 
     html += "<style>";
-    html += "body{font-family:Arial;background:#111;color:#eee;margin:20px;}";
-    html += "h1{font-size:24px;}";
-    html += "button{font-size:18px;margin:5px;padding:12px 16px;border-radius:8px;border:0;}";
-    html += "input{font-size:18px;padding:10px;width:80%;}";
-    html += "pre{background:#222;padding:12px;border-radius:8px;white-space:pre-wrap;}";
-    html += ".grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:500px;}";
-    html += ".danger{background:#d33;color:white;}";
-    html += ".ok{background:#2d7;color:#111;}";
+    html += "body{font-family:Arial,Helvetica,sans-serif;background:#0f172a;color:#e5e7eb;margin:0;padding:18px;}";
+    html += "h1{font-size:26px;margin:0 0 6px 0;}";
+    html += "h2{font-size:18px;margin-top:22px;border-bottom:1px solid #334155;padding-bottom:6px;}";
+    html += ".sub{color:#94a3b8;margin-bottom:18px;}";
+    html += ".card{background:#111827;border:1px solid #334155;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.25);}";
+    html += ".grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}";
+    html += ".grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:center;}";
+    html += "button{font-size:17px;padding:13px 10px;border:0;border-radius:12px;background:#2563eb;color:white;font-weight:bold;}";
+    html += "button:active{transform:scale(.97);}";
+    html += ".stop{background:#dc2626;color:white;font-size:20px;}";
+    html += ".ok{background:#16a34a;}";
+    html += ".warn{background:#ca8a04;}";
+    html += ".gray{background:#475569;}";
+    html += ".purple{background:#7c3aed;}";
+    html += "input{font-size:17px;padding:12px;border-radius:10px;border:1px solid #475569;background:#020617;color:#e5e7eb;width:calc(100% - 24px);margin-bottom:10px;}";
+    html += "pre{background:#020617;border:1px solid #334155;color:#d1d5db;padding:12px;border-radius:12px;white-space:pre-wrap;min-height:90px;}";
+    html += ".small button{font-size:14px;padding:10px;}";
     html += "</style>";
 
     html += "</head><body>";
 
-    html += "<h1>Robot ESP32-S3</h1>";
+    html += "<h1>Robot autonomo ESP32-S3</h1>";
+    html += "<div class='sub'>Panel de control para demostracion</div>";
 
-    html += "<form action='/cmd' method='GET'>";
-    html += "<input name='c' placeholder='Ej: G 0 1'>";
-    html += "<button type='submit'>Enviar</button>";
-    html += "</form>";
+    html += "<div class='card'>";
+    html += "<button class='stop' style='width:100%;' onclick=\"cmd('S')\">STOP</button>";
+    html += "</div>";
 
-    html += "<h2>Comandos rapidos</h2>";
+    html += "<div class='card'>";
+    html += "<h2>Control manual</h2>";
+
+    html += "<div class='grid3'>";
+    html += "<div></div>";
+    html += "<button class='ok' onclick=\"cmd('MAN_AV')\">Avanzar</button>";
+    html += "<div></div>";
+
+    html += "<button class='warn' onclick=\"cmd('MAN_IZQ')\">Izq 90</button>";
+    html += "<button class='stop' onclick=\"cmd('S')\">Stop</button>";
+    html += "<button class='warn' onclick=\"cmd('MAN_DER')\">Der 90</button>";
+
+    html += "<div></div>";
+    html += "<button class='ok' onclick=\"cmd('MAN_RET')\">Retroceder</button>";
+    html += "<div></div>";
+    html += "</div>";
+
+    html += "<h2>Correccion de giro</h2>";
     html += "<div class='grid'>";
-
-    html += "<button onclick=\"cmd('ESTADO')\">ESTADO</button>";
-    html += "<button onclick=\"cmd('S')\" class='danger'>STOP</button>";
-
-    html += "<button onclick=\"cmd('G 0 1')\">G 0 1</button>";
-    html += "<button onclick=\"cmd('G 1 0')\">G 1 0</button>";
-
-    html += "<button onclick=\"cmd('AV100')\">AV100</button>";
-    html += "<button onclick=\"cmd('AV200')\">AV200</button>";
-
-    html += "<button onclick=\"cmd('GIZQ')\">GIZQ</button>";
-    html += "<button onclick=\"cmd('GDER')\">GDER</button>";
-
-    html += "<button onclick=\"cmd('ER')\">ER</button>";
-    html += "<button onclick=\"cmd('YAW0')\">YAW0</button>";
-
-    html += "<button onclick=\"cmd('U')\">US</button>";
-    html += "<button onclick=\"cmd('D')\">DESCARGA</button>";
+    html += "<button class='warn' onclick=\"cmd('MAN_IZQ45')\">Izq 45</button>";
+    html += "<button class='warn' onclick=\"cmd('MAN_DER45')\">Der 45</button>";
+    html += "<button class='gray' onclick=\"cmd('MAN_IZQ10')\">Izq 10</button>";
+    html += "<button class='gray' onclick=\"cmd('MAN_DER10')\">Der 10</button>";
+    html += "</div>";
 
     html += "</div>";
 
+    html += "<div class='card'>";
+    html += "<h2>Misiones rapidas</h2>";
+    html += "<div class='grid'>";
+    html += "<button onclick=\"cmd('G 0 1')\">G 0 1</button>";
+    html += "<button onclick=\"cmd('G 0 2')\">G 0 2</button>";
+    html += "<button onclick=\"cmd('G 1 0')\">G 1 0</button>";
+    html += "<button onclick=\"cmd('G 1 1')\">G 1 1</button>";
+    html += "</div>";
+    html += "</div>";
+
+    html += "<div class='card'>";
+    html += "<h2>Enviar comando</h2>";
+    html += "<input id='entrada' placeholder='Ej: G 1 1, ESTADO, U'>";
+    html += "<button style='width:100%;' onclick=\"cmdInput()\">Enviar</button>";
+    html += "</div>";
+
+    html += "<div class='card'>";
+    html += "<h2>Acciones</h2>";
+    html += "<div class='grid'>";
+    html += "<button class='purple' onclick=\"cmd('ESTADO')\">Estado</button>";
+    html += "<button class='purple' onclick=\"cmd('U')\">Sensores US</button>";
+    html += "<button class='gray' onclick=\"cmd('D')\">Descargar</button>";
+    html += "<button class='gray' onclick=\"cmd('AYUDA')\">Ayuda</button>";
+    html += "</div>";
+    html += "</div>";
+
+    html += "<div class='card small'>";
+    html += "<h2>Debug</h2>";
+    html += "<div class='grid'>";
+    html += "<button onclick=\"cmd('YAW0')\">Reset Yaw</button>";
+    html += "<button onclick=\"cmd('ER')\">Reset Encoders</button>";
+    html += "<button onclick=\"cmd('AVCELDA')\">Av. celda</button>";
+    html += "<button onclick=\"cmd('G180')\">Giro 180</button>";
+    html += "</div>";
+    html += "</div>";
+
+    html += "<div class='card'>";
     html += "<h2>Respuesta</h2>";
     html += "<pre id='respuesta'>";
     html += ultimaRespuesta;
     html += "</pre>";
+    html += "</div>";
 
     html += "<script>";
     html += "function cmd(c){";
+    html += "document.getElementById('respuesta').textContent='Ejecutando: '+c+'...';";
     html += "fetch('/cmd?c='+encodeURIComponent(c))";
     html += ".then(r=>r.text())";
-    html += ".then(t=>{document.getElementById('respuesta').textContent=t;});";
+    html += ".then(t=>{document.getElementById('respuesta').textContent=t;})";
+    html += ".catch(e=>{document.getElementById('respuesta').textContent='Error de conexion';});";
+    html += "}";
+    html += "function cmdInput(){";
+    html += "let v=document.getElementById('entrada').value;";
+    html += "if(v.trim().length>0) cmd(v);";
     html += "}";
     html += "</script>";
 

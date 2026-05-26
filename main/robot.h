@@ -19,6 +19,7 @@ class Robot {
         bool cargaEntregada;
         bool comandoDescargaManual;
         bool misionActiva;
+        bool regresandoAlOrigen;
 
         Ruta rutaActual;
 

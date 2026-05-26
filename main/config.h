@@ -163,7 +163,7 @@
 // PERFIL DE BATERIA / PWM
 // =====================================================
 
-#define PERFIL_BATERIA_BAJA true
+#define PERFIL_BATERIA_BAJA false
 
 #if PERFIL_BATERIA_BAJA
 
@@ -177,10 +177,10 @@
     #define PWM_FINAL_GIRO 120
 
     #define PWM_AVANCE_MIN 130
-    #define PWM_AVANCE_MAX 255
+    #define PWM_AVANCE_MAX 220
 
-    #define PWM_GIRO_MIN 140
-    #define PWM_GIRO_MAX 255
+    #define PWM_GIRO_MIN 160
+    #define PWM_GIRO_MAX 220
 
     #else
 
@@ -188,7 +188,7 @@
     #define PWM_MAX 255
 
     #define PWM_BASE_AVANCE 160
-    #define PWM_BASE_GIRO 150
+    #define PWM_BASE_GIRO 160
 
     #define PWM_FINAL_AVANCE 100
     #define PWM_FINAL_GIRO 100
@@ -196,7 +196,7 @@
     #define PWM_AVANCE_MIN 120
     #define PWM_AVANCE_MAX 220
 
-    #define PWM_GIRO_MIN 120
+    #define PWM_GIRO_MIN 140
     #define PWM_GIRO_MAX 220
 
 #endif
@@ -232,7 +232,7 @@
 #define TOLERANCIA_GIRO_GRADOS 1.0
 
 // Tolerancia angular para corrección fina después de un giro
-#define TOLERANCIA_GIRO_FINO_GRADOS 1.0
+#define TOLERANCIA_GIRO_FINO_GRADOS 5.0
 
 // Ganancia proporcional para giro
 #define KP_GIRO 2.0
@@ -281,6 +281,16 @@
 #define WIFI_AP_CANAL 1
 #define WIFI_AP_OCULTO false
 #define WIFI_AP_MAX_CLIENTES 2
+
+// =====================================================
+// WIFI - CONTROL MANUAL DEMO
+// =====================================================
+
+#define WIFI_MANUAL_AVANCE_MM 250.0
+
+#define WIFI_MANUAL_GIRO_GRADOS 90.0
+#define WIFI_MANUAL_GIRO_MEDIO_GRADOS 45.0
+#define WIFI_MANUAL_GIRO_FINO_GRADOS 10.0
 
 // =====================================================
 // DEPURACION

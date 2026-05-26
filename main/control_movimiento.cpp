@@ -181,13 +181,13 @@ ResultadoGiro girarAnguloResultado(float grados){
         float pwm = KP_GIRO * error;
         int pwmGiro = limitarPWMControl(pwm, PWM_GIRO_MIN, PWM_GIRO_MAX);
 
-        if (objetivo > 45 && error < 30) {
+        if (objetivo >= 45 && error < 20) {
             pwmGiro = PWM_FINAL_GIRO;
         }
         // Suavizar final de giro para mejor precision
 
-        if (objetivo < 20) {
-            pwmGiro = PWM_GIRO_MIN;
+        if ((objetivo < 45 && objetivo >= 10) && error < 5) {
+            pwmGiro = PWM_FINAL_GIRO;
         }
         // Para giros pequeños, usar potencia minima para evitar overshoot
 
@@ -198,12 +198,11 @@ ResultadoGiro girarAnguloResultado(float grados){
         // Giro izquierda
         setMotores(-pwmGiro, pwmGiro);
         }
-
-        delay(10);
+        // delay(10);
     }
 
     detenerMotores();
-    delay(50);
+    delay(100);
 
     actualizarIMU();
 

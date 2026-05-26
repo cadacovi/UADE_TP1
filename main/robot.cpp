@@ -48,6 +48,8 @@ void Robot::inicializar() {
     rutaActual.longitud = 0;
     rutaActual.indiceActual = 0;
 
+    regresandoAlOrigen = false;
+
     tiempoEntradaEstado = millis();
 
     reportar("Robot inicializado");
@@ -119,6 +121,7 @@ void Robot::crearNuevaMision(Celda nuevoDestino) {
     cargaEntregada = false;
     comandoDescargaManual = false;
     misionActiva = true;
+    regresandoAlOrigen = false;
 
     rutaActual.longitud = 0;
     rutaActual.indiceActual = 0;
@@ -382,7 +385,7 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
         resultadoGiro.errorFinalGrados = 0.0;
 
         if (diferencia == 1) {
-            resultadoGiro = girarAnguloResultado(90.0);
+            resultadoGiro = girarAnguloResultado(86.0); // valor calibrado, corrige error
 
             if (resultadoGiro.exito) {
                 actualizarDireccionDerecha();
@@ -390,7 +393,7 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
         }
 
         else if (diferencia == 3) {
-            resultadoGiro = girarAnguloResultado(-90.0);
+            resultadoGiro = girarAnguloResultado(-89.0); // valor calibrado, corrige error
 
             if (resultadoGiro.exito) {
                 actualizarDireccionIzquierda();
@@ -398,7 +401,7 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
         }
 
         else if (diferencia == 2) {
-            resultadoGiro = girarAnguloResultado(180.0);
+            resultadoGiro = girarAnguloResultado(172.0); // valor calibrado, corrige error
 
             if (resultadoGiro.exito) {
                 actualizarDireccion180();
@@ -410,7 +413,7 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
             return false;
         }
 
-        // Correccion fina del giro
+        // Correccion de error grosero para giro
         if (abs(resultadoGiro.errorFinalGrados) > TOLERANCIA_GIRO_FINO_GRADOS) {
             Serial.print("[NAV] Correccion fina giro: ");
             Serial.println(resultadoGiro.errorFinalGrados);
@@ -423,7 +426,7 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
             }
         }
 
-        delay(30);
+        delay(10);
     }
 
     return true;
@@ -483,7 +486,8 @@ bool Robot::avanzarASiguienteCelda(Celda siguiente) {
     }
 }
 
-// auxiliar
+// ----- Tramo recto optimizado-----
+
 Direccion Robot::direccionEntreCeldas(Celda desde, Celda hacia) {
     if (hacia.x > desde.x) return ESTE;
     if (hacia.x < desde.x) return OESTE;
@@ -683,8 +687,14 @@ void Robot::manejarNavegando() {
     actualizarMapaLocalConSensores();
 
     if (posicionActual.x == destino.x && posicionActual.y == destino.y) {
-        reportar("Destino alcanzado");
-        cambiarEstado(DESCARGANDO);
+        if (regresandoAlOrigen) {
+            reportar("Origen alcanzado");
+            cambiarEstado(MISION_COMPLETADA);
+        } else {
+            reportar("Destino alcanzado");
+            cambiarEstado(DESCARGANDO);
+        }
+
         return;
     }
 
@@ -714,8 +724,14 @@ void Robot::manejarNavegando() {
     }
 
     if (posicionActual.x == destino.x && posicionActual.y == destino.y) {
-        reportar("Destino alcanzado");
-        cambiarEstado(DESCARGANDO);
+        if (regresandoAlOrigen) {
+            reportar("Origen alcanzado");
+            cambiarEstado(MISION_COMPLETADA);
+        } else {
+            reportar("Destino alcanzado");
+            cambiarEstado(DESCARGANDO);
+        }
+
         return;
     }
 }
@@ -740,7 +756,17 @@ void Robot::manejarDescargando() {
 
     cargaEntregada = true;
 
-    cambiarEstado(MISION_COMPLETADA);
+    if (!regresandoAlOrigen) {
+        reportar("Carga entregada. Regresando al origen");
+
+        regresandoAlOrigen = true;
+        destino.x = 0;
+        destino.y = 0;
+
+        cambiarEstado(PLANIFICANDO_RUTA);
+    } else {
+        cambiarEstado(MISION_COMPLETADA);
+    }
 }
 
 void Robot::manejarMisionCompletada() {
@@ -749,6 +775,8 @@ void Robot::manejarMisionCompletada() {
     reportar("Mision completada");
 
     misionActiva = false;
+
+    regresandoAlOrigen = false;
 
     cambiarEstado(IDLE);
 }
