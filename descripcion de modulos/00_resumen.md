@@ -4,9 +4,9 @@ El software del robot se organizó en distintos módulos `.h` y `.cpp`, separand
 
 ### `config.h`
 
-Este archivo contiene las constantes generales del proyecto. Define los pines del ESP32-S3, el tamaño de celda, dimensiones del mapa, umbrales de obstáculos, parámetros físicos del robot, valores de PWM, ganancias de control, configuración de la IMU, servo y WiFi.
+Este archivo contiene las constantes generales del proyecto. Define los pines del ESP32-S3, el tamaño de celda, dimensiones del mapa, umbrales de obstáculos, parámetros físicos del robot, valores de PWM, ganancias de control (correccion de errores), configuración de la IMU, servo y WiFi.
 
-Es uno de los archivos más importantes para la calibración, ya que desde allí se ajustan valores como `TAM_CELDA_MM`, `PULSOS_POR_MM`, `DIST_OBSTACULO_FRENTE_MM`, `PWM_BASE_AVANCE`, `KP_ENCODER_AVANCE` y `KP_YAW_AVANCE`.
+Es uno de los archivos más importantes para la calibración, ya que desde allí se ajustan valores como `TAM_CELDA_MM`, `PULSOS_POR_MM`, `DIST_OBSTACULO_FRENTE_MM`, `PWM_BASE_AVANCE`, `KP_ENCODER_AVANCE` y `KP_YAW_AVANCE`. Estos valores tienen relación con tamaños físicos, algunos requieren calibración.
 
 ### `tipos.h`
 
@@ -16,7 +16,7 @@ Este módulo permite que el resto del código use una representación común par
 
 ### `motores`
 
-El módulo `motores` controla directamente el driver DRV8833. Permite manejar cada motor mediante un valor PWM con signo: positivo para un sentido, negativo para el sentido contrario y cero para detener.
+El módulo `motores` controla directamente el driver DRV8833. Permite manejar cada motor mediante un valor PWM con signo: positivo para un sentido, negativo para el sentido contrario y cero para detener. El valor PWM debe por lo menos superar la fricción entre las ruedas y el suelo. Depende del estado de las pilas.
 
 Sus funciones principales son `setMotorIzquierdo()`, `setMotorDerecho()`, `setMotores()` y `detenerMotores()`. También incluye funciones de prueba como `pruebaAvanzar()`, `pruebaRetroceder()`, `pruebaGirarIzquierda()` y `pruebaGirarDerecha()`.
 
@@ -26,9 +26,11 @@ La idea principal de este módulo es abstraer el manejo eléctrico del driver, p
 
 El módulo `encoders` se encarga de contar los pulsos de los encoders ópticos LM393 conectados a las ruedas. Estos pulsos permiten estimar la distancia recorrida por cada rueda y la distancia promedio del robot.
 
-La lectura se realiza mediante interrupciones usando `attachInterrupt()` en flanco descendente (`FALLING`). Esto permite contar pulsos aunque el programa esté ejecutando otras tareas. Para reducir errores por ruido, rebote o vibraciones, se implementó un filtro temporal dentro de la interrupción mediante `FILTRO_ENCODER_US`, ignorando pulsos demasiado cercanos entre sí.
+La lectura se realiza mediante interrupciones usando `attachInterrupt()` en flanco descendente (`FALLING`), que significa que vamos a contar un pulso cuando el encoder pase de HIGH a LOW. Esto permite contar pulsos aunque el programa esté ejecutando otras tareas. Básicamente, le dice al controlador que pause lo que hace para atender al cambio de pulsos del encoder.
 
-También se utilizan variables `volatile` y secciones críticas para proteger las variables compartidas entre el programa principal y las rutinas de interrupción.
+Para reducir errores por ruido, rebote o vibraciones, se implementó un filtro temporal dentro de la interrupción mediante `FILTRO_ENCODER_US`, ignorando pulsos demasiado cercanos entre sí. Sin embargo, esto no evita las interrupciones ocacionadas por el ruido. Los efectos de estas interrupciones son minimizados al reducir las instrucciones que el controlador debe ejecutar por interrupción al mínimo.
+
+También se utilizan variables `volatile` (para indicarle al programa que son variables que pueden cambiar a la mitad de una ejecucion del codigo que la esta usando) y secciones críticas para proteger las variables compartidas entre el programa principal y las rutinas de interrupción.
 
 Funciones importantes:
 
@@ -39,14 +41,21 @@ Funciones importantes:
 * `obtenerDistanciaPromedioMm()`: estima la distancia recorrida por el robot.
 * `obtenerErrorRuedasMm()`: calcula la diferencia de avance entre ambas ruedas.
 
-Este módulo fue clave para lograr odometría y control de avance por distancia.
+Este módulo fue clave para lograr odometría y control de avance por distancia. Su buen funcionamiento está ligado a una buena calibracion de la constante PULSOS_POR_MM, que puede variar segun la superficie de contacto/estado de ruedas. 
 
 ### `imu`
 
-El módulo `imu` gestiona el MPU6050 mediante comunicación I2C. En este proyecto se usa principalmente el giroscopio en el eje Z para estimar el yaw relativo del robot.
+El módulo `imu` gestiona el MPU6050 mediante comunicación I2C. En este proyecto se usa principalmente el giroscopio en el eje Z para estimar el yaw relativo (angulo relativo a refencia interna del IMU) del robot.
 
 Durante la inicialización, el módulo despierta el MPU6050, configura el giroscopio y realiza una calibración para calcular el offset del eje Z. Luego, durante el movimiento, integra la velocidad angular en el tiempo para obtener el ángulo relativo girado.
-
+```cpp
+yawRelativo += gyroZ * dt;
+```
+El valor importante para la conversion es 131. Para el rango de ±250 °/s, el MPU6050 entrega aproximadamente 131 LSB por cada grado por segundo.
+```cpp
+gyroZ = (rawGyroZ / 131.0) - offsetGyroZ;
+// offsetGyroZ es un valor calibrado al inicializarse el robot. Representa el error del IMU, pues mide la variacion que reporta el IMU cuando esta quieto.
+```
 Funciones importantes:
 
 * `inicializarIMU()`: inicializa el bus I2C y configura el MPU6050.
@@ -62,7 +71,11 @@ La IMU se usa principalmente para controlar giros y corregir desviaciones durant
 El módulo `ultrasonidos` controla los tres sensores HC-SR04: frontal, izquierdo y derecho. Su función es medir distancias y detectar obstáculos cercanos.
 
 La distancia se obtiene midiendo la duración del pulso `ECHO` y convirtiéndola a milímetros mediante la velocidad del sonido. Para mejorar la estabilidad de las mediciones se usa filtrado por mediana: se toman varias muestras, se ordenan y se elige el valor central.
-
+La distancia se calcula mediante:
+```cpp
+float distanciaMm = (duracion * 0.343) / 2.0;
+// Donde `duracion` está en microsegundos y `0.343` corresponde aproximadamente a la velocidad del sonido en mm/µs.
+```
 También existe una lectura frontal rápida, con menos muestras, pensada para detectar obstáculos durante el movimiento sin ralentizar demasiado el control.
 
 Funciones importantes:
@@ -104,6 +117,11 @@ Durante el avance se aplica una corrección proporcional combinando dos errores:
 
 * Error entre ruedas, obtenido con los encoders.
 * Error de yaw, obtenido con la IMU.
+```cpp
+float correccion = (KP_ENCODER_AVANCE * errorRuedas) +
+                   (KP_YAW_AVANCE * errorYaw);
+// Sobre las constantes de proporcion: Kp convierte un error medido en cualquier unidad en una corrección en las unidades que nos interesan (en este caso PWM), pero su valor no depende solo de las unidades, sino también de la dinámica real del sistema. Por eso suele ser estimado empiricamente.
+```
 
 También se reduce el PWM cerca del final del recorrido para evitar sobrepasarse y se verifica periódicamente el sensor frontal para detener el robot ante obstáculos.
 
@@ -167,7 +185,7 @@ Funciones y grupos de funciones importantes:
 
 #### Máquina de estados
 
-El robot funciona mediante una máquina de estados. La función principal es:
+El robot funciona mediante una máquina de estados (según el "estado" actual del robot, ejecuta una lógica distinta.). La función principal es:
 
 * `actualizar()`: se llama continuamente desde el `loop` y ejecuta la lógica correspondiente al estado actual.
 
@@ -175,8 +193,8 @@ Los estados se manejan con funciones específicas:
 
 * `manejarIdle()`: espera comandos.
 * `manejarPlanificandoRuta()`: actualiza sensores y calcula una ruta con BFS.
-* `manejarNavegando()`: ejecuta la ruta planificada.
-* `manejarEvitandoObstaculo()`: marca obstáculos y vuelve a planificar.
+* `manejarNavegando()`: ejecuta la ruta planificada, chequeando por obstáculos.
+* `manejarEvitandoObstaculo()`: marca obstáculos en mapa local y vuelve a planificar.
 * `manejarDescargando()`: activa el servo de descarga.
 * `manejarMisionCompletada()`: finaliza la misión.
 * `manejarError()`: detiene el robot ante fallas.
@@ -261,6 +279,8 @@ Funciones importantes:
 La interfaz permite controlar el robot desde un celular o computadora, con botones de avance, retroceso, giro, STOP, misiones rápidas, sensores y diagnóstico.
 
 Este módulo fue importante para la demostración, ya que permite controlar el robot sin depender exclusivamente del monitor serie.
+
+Una limitación de esta implementación es que varias acciones de movimiento son bloqueantes. Mientras el robot ejecuta un avance o giro, el servidor puede tardar en responder nuevas solicitudes. Para una versión futura, se podría implementar una lógica no bloqueante o basada en estados para que la interfaz web permanezca más reactiva durante los movimientos.
 
 ### `main.ino`
 
