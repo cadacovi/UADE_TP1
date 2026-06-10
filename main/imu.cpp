@@ -8,6 +8,8 @@ static unsigned long tiempoAnteriorIMU = 0;
 static bool imuInicializada = false;
 
 static int16_t leerRegistro16(uint8_t registroAlto) {
+    // el MPU6050 no te entrega el valor del giroscopio Z como “un número completo” de una vez. Lo guarda en dos pedacitos:
+    // Esta función auxiliar es para leer datos del MPU6050 que vienen partidos en dos registros de 8 bits, pero que juntos representan un solo número de 16 bits. El registroAlto es la dirección del byte alto, y el byte bajo se encuentra en la siguiente dirección. La función hace una lectura de ambos bytes, los combina para formar un número de 16 bits con signo, y lo devuelve como un int16_t.
     Wire.beginTransmission(MPU6050_ADDR);
     Wire.write(registroAlto);
     Wire.endTransmission(false);

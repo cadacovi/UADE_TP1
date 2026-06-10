@@ -94,7 +94,7 @@
 // =====================================================
 
 #define DIST_OBSTACULO_FRENTE_MM 180
-#define DIST_OBSTACULO_LATERAL_MM 150
+#define DIST_OBSTACULO_LATERAL_MM 220
 
 // Distancia máxima considerada válida para los HC-SR04.
 // Lecturas mayores pueden tratarse como "sin obstáculo cercano".
@@ -163,7 +163,7 @@
 // PERFIL DE BATERIA / PWM
 // =====================================================
 
-#define PERFIL_BATERIA_BAJA false
+#define PERFIL_BATERIA_BAJA true
 
 #if PERFIL_BATERIA_BAJA
 
@@ -171,7 +171,7 @@
     #define PWM_MAX 255
 
     #define PWM_BASE_AVANCE 200
-    #define PWM_BASE_GIRO 190
+    #define PWM_BASE_GIRO 170
 
     #define PWM_FINAL_AVANCE 120
     #define PWM_FINAL_GIRO 120
@@ -180,7 +180,7 @@
     #define PWM_AVANCE_MAX 220
 
     #define PWM_GIRO_MIN 160
-    #define PWM_GIRO_MAX 220
+    #define PWM_GIRO_MAX 180
 
     #else
 
@@ -188,7 +188,7 @@
     #define PWM_MAX 255
 
     #define PWM_BASE_AVANCE 160
-    #define PWM_BASE_GIRO 160
+    #define PWM_BASE_GIRO 150
 
     #define PWM_FINAL_AVANCE 100
     #define PWM_FINAL_GIRO 100
@@ -197,7 +197,7 @@
     #define PWM_AVANCE_MAX 220
 
     #define PWM_GIRO_MIN 140
-    #define PWM_GIRO_MAX 220
+    #define PWM_GIRO_MAX 160
 
 #endif
 
@@ -215,7 +215,7 @@
 #define KP_ENCODER_AVANCE 1.5
 
 // Ganancia para corregir desviación angular usando IMU
-#define KP_YAW_AVANCE 1.5
+#define KP_YAW_AVANCE 2.0
 
 // Tiempo máximo para avanzar una celda.
 // Evita que el robot quede intentando avanzar para siempre.

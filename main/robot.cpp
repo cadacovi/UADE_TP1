@@ -385,7 +385,7 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
         resultadoGiro.errorFinalGrados = 0.0;
 
         if (diferencia == 1) {
-            resultadoGiro = girarAnguloResultado(86.0); // valor calibrado, corrige error
+            resultadoGiro = girarAnguloResultado(90.0);
 
             if (resultadoGiro.exito) {
                 actualizarDireccionDerecha();
@@ -393,7 +393,7 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
         }
 
         else if (diferencia == 3) {
-            resultadoGiro = girarAnguloResultado(-89.0); // valor calibrado, corrige error
+            resultadoGiro = girarAnguloResultado(-90.0);
 
             if (resultadoGiro.exito) {
                 actualizarDireccionIzquierda();
@@ -401,7 +401,7 @@ bool Robot::orientarHacia(Direccion direccionObjetivo) {
         }
 
         else if (diferencia == 2) {
-            resultadoGiro = girarAnguloResultado(172.0); // valor calibrado, corrige error
+            resultadoGiro = girarAnguloResultado(180.0);
 
             if (resultadoGiro.exito) {
                 actualizarDireccion180();
